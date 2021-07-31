@@ -1,9 +1,13 @@
 import Joi from "joi";
 import Shoplisitng from "../../models/listings/soplisting.model";
+import Shoplisitng2 from "../../models/categories/shop-listing-cat.model";
+import Shoplisitng1 from "../../models/categories/shop-listing-sub-cat.model";
 import HttpStatus from "http-status-codes";
 import ShopReviews from "../../models/reviews/reviewshop.model";
-
+import Subscription from "../../models/subscriptions/subscriptions.model";
+import Vendor from "../../models/vendor/vendor.model";
 import multer from "multer";
+import shopListingCatController from "../categories/shop-listing-cat.controller";
 
 export default {
   async createshopcat(req, res) {
@@ -104,14 +108,55 @@ export default {
           subscriptionamount: "$get_subscription.cost",
         },
       },
-      {
-        $unwind: "$cat_name",
-      },
-      {
-        $unwind: "$vendor",
-      },
+      // {
+      //   $unwind: "$cat_name",
+      // },
+      // {
+      //   $unwind: "$vendor",
+      // },
     ]).then((vechicle) => {console.log(vechicle); res.json(vechicle)});
   },
+
+
+  async getshopdetails(req,res){
+    let { id } = req.params;
+    Shoplisitng.find({_id: id}).then( async (resp)=>{
+      console.log(resp);
+
+      await Shoplisitng2.findById(resp[0].category).then(result=>{
+        console.log(result);
+        resp[0].category = result.cat_name;
+      });
+
+      await Shoplisitng1.findById(resp[0].sub_cat).then(result1=>{
+        console.log(result1);
+        if(result1==null){
+        }
+        else{
+          console.log(result1);
+          resp[0].sub_cat = result1.sub_cat_name;
+          
+        }
+        console.log(result1);
+        // resp[0].subcategory = result1.cat_name;
+      });
+
+      await Vendor.findById(resp[0].vendorid).then(result2=>{
+        if(result2==null){
+        }
+        else{
+          console.log(result2);
+          resp[0].vendorname = result2.name;
+          
+        }
+        console.log(result2);
+        // resp[0].subcategory = result1.cat_name;
+      });
+
+      res.send(resp)})
+  },
+
+
 
   findAll(req, res, next) {
     var s = req.protocol + "://" + req.get("host");
@@ -237,6 +282,20 @@ export default {
       .catch((err) => res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(err));
   },
 
+  async getshopcat(req,res){
+    let { id } = req.params;
+    Shoplisitng.find({vendorid:id}).then((result)=>{
+      console.log(result);
+      console.log(result.length);
+      if(result.length==0){
+        console.log("this is test")
+        res.send("not found");
+      }
+      res.send(result[0].category);
+    })
+
+
+  },
 
   async getshopimage(req,res){
     let { id } = req.params;
@@ -261,8 +320,47 @@ export default {
     ).then((result)=>{console.log(result); res.send({msg:"done"})})
   },
 
+  async getlocationdetails(req,res){
+    let { id } = req.params;
+
+    Shoplisitng.find({vendorid : id}, function (err, docs) {
+      if (err){
+          console.log(err);
+      }
+      else{
+          console.log("Result : ", docs);
+          res.send({result:docs});
+      }
+  });
+
+  },
 
 
+  async updatelocationdetails(req, res ){
+    let { id } = req.params;
+    console.log(id);
+    console.log(req.body.city);
+    console.log(req.body.state);
+
+    Shoplisitng.findByIdAndUpdate(
+      { _id: id },
+      {
+        state:req.body.state,
+        city:req.body.city,
+        address:req.body.address,
+        location_map:req.body.location_map,
+        area:req.body.area,
+      },
+    )
+      .then((rest) => {
+        console.log(rest)
+        res.send({ msg: "Updated Successfully" });
+      })
+      .catch((err) => {
+        res.send({ msg: "Update Failed" });
+      });
+
+  },
 
   findreviews(req, res, next) {
     let { id } = req.params;
@@ -372,7 +470,6 @@ export default {
     .then((vechicle) => { console.log(vechicle);res.json(vechicle)});
   },
 
-
   async editactive(req, res) {
     let { id } = req.params;
     let vid = id.split("&&")[0];
@@ -393,7 +490,6 @@ export default {
       });
   },
 
-
   async getactive(req,res){
     let { id } = req.params;
     Shoplisitng.find({vendorid:id}).then((result)=>{
@@ -401,7 +497,6 @@ export default {
       res.send({status: result[0].active});
     });
   },
-
 
   findvendordbycat(req, res, next) {
     let {id} = req.params;
@@ -437,8 +532,84 @@ export default {
          shop_name:"$shop_name"
         }
       }
-     
-     ]).then((vechicle) =>{console.log(vechicle); res.json(vechicle)});
+     ]).then( async (vechicle) =>  {  
+      console.log(vechicle.length-1);
+      console.log(vechicle[vechicle.length-1].vendor_id[0]); 
+
+      vechicle[vechicle.length-1].result="hello";
+
+      for(let i=0;i<vechicle.length;i++){
+        if(vechicle[i].vendor_id.length==0){
+          console.log("this is null",vechicle[i].vendor_id);
+        }
+        else{
+      await Subscription.aggregate([
+        {
+          $addFields: {
+            convertedId1: { $toString: vechicle[i].vendor_id[0] },
+            convertedId2: { $toObjectId: "$plan_id" },
+          },
+        },
+        {
+          $match: { $expr: { $and: [{ $eq: ["$vendor_id", "$convertedId1"] }] } },
+        },
+        {
+          $lookup: {
+            from: "subscriptions",
+            localField: "convertedId2",
+            foreignField: "_id",
+            as: "get_subplan",
+          },
+        },
+        {
+          $addFields: {
+            days: "$get_subplan.days",
+            days: "$get_subplan.days",
+          },
+        },
+  
+        { $unwind: "$days" },
+        {
+          $group: {
+            _id: "$vendor_id",
+            days: { $sum: "$days" },
+            createdat: { $first: "$createdat" },
+            //   msid:{ $sum: 1},
+          },
+        },
+        {
+          $project: {
+            days: "$days",
+            daysremaining: {
+              $divide: [
+                { $subtract: [new Date(), "$createdat"] },
+                1000 * 60 * 60 * 24,
+              ],
+            },
+          },
+        },
+        {
+          $addFields:{
+            conver: { $subtract: [ "$days", "$daysremaining"] }
+          }
+        },
+        {
+          $project: {
+            totaldayssubscribed: "$days",
+            daysremaining: { $round: ["$conver", 0] },
+          },
+        },
+      ]).then((resp) => {if(resp.length==0){ vechicle[i].daysremaining = -10}else{vechicle[i].daysremaining = resp[0].daysremaining}
+    }).catch(err=>{
+      console.log(err);
+    });
+      console.log("this is response",i ,vechicle[i]);
+    }  
+    }
+    console.log("about to send");
+      res.json(vechicle);
+      console.log("already sent")
+    });
    }, 
 
 

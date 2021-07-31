@@ -47,6 +47,22 @@ export default {
     return res.json({ success: true, token,  _id: user._id });
   },
 
+  // async loginbyemail(req, res) {
+  //   let user = await Customer.findOne({
+  //     mail: req.body.,
+  //   }).exec();
+  //   if (!user) {
+  //     res.send({ msg: "You are not registered" });
+  //   }
+  //   if (!bcrypt.compareSync(req.body.password, user.password)) {
+  //     res.send({ msg: "Login Fail" });
+  //   }
+  //   const token = jwt.sign({ id: user._id }, devConfig.secret, {
+  //     expiresIn: "1d",
+  //   });
+  //   return res.json({ success: true, token,  _id: user._id });
+  // },
+
 
   async changepassword(req, res){
     const salt = await bcryptjs.genSalt();
@@ -62,9 +78,26 @@ export default {
     }).catch((err)=>{
       res.send({data:"err",err})
     })
-
-
   },
+
+  async changepasswordemail(req, res){
+    const salt = await bcryptjs.genSalt();
+    const hash = await bcryptjs.hash(req.body.password, salt);
+    let newpassword= hash
+    Customer.findOneAndUpdate(
+      {mail: req.body.email},
+      {
+        password: newpassword
+      }
+    ).then(()=>{
+      res.send({data: "modified"});
+    }).catch((err)=>{
+      res.send({data:"err",err})
+    })
+  },
+
+
+
 
   // async forgotpassword(req, res){
   //   const salt = await bcryptjs.genSalt();

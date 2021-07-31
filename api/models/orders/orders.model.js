@@ -14,8 +14,20 @@ const orderSchema = new Schema({
     type: String,
     required: true,
   },
+  productids:{
+    type: String,
+    required: true,
+  },
+  productname:{
+    type: String,
+    required: true,
+  },
+  productimage:{
+    type: String,
+    required: true,
+  },
   quantity: {
-    type: Number,
+    type: String,
     required: true,
   },
   address: {
@@ -29,6 +41,9 @@ const orderSchema = new Schema({
   amount: {
     type: String,
     required: true,
+  },
+  totalamount:{
+    type: String,
   },
   order_note: {
     type: String,

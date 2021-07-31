@@ -43,16 +43,16 @@ app.use((error, req, res, next) => {
 
 const hostname = "162.214.198.228";
 const port = 7423;
-var https = require('https');
+var https = require('http');
 
 
-var httpsServer = https.createServer({
-  key:fs.readFileSync(path.join(__dirname,'cert','key.key'), 'utf8'),
-  cert:fs.readFileSync(path.join(__dirname,'cert','cert.crt'), 'utf8'),
-  ca: [
-    fs.readFileSync(path.join(__dirname,'cert','ca_bundle.crt'), 'utf8'),
- ]
-}, app);
+// var httpsServer = https.createServer({
+//   key:fs.readFileSync(path.join(__dirname,'cert','key.key'), 'utf8'),
+//   cert:fs.readFileSync(path.join(__dirname,'cert','cert.crt'), 'utf8'),
+//   ca: [
+//     fs.readFileSync(path.join(__dirname,'cert','ca_bundle.crt'), 'utf8'),
+//  ]
+// }, app);
 
-httpsServer.listen(7420,"0.0.0.0");
+app.listen(7420,"0.0.0.0");
 

@@ -1,7 +1,12 @@
 import Joi from "joi";
 import Vechiclelisting from "../../models/listings/vehiclelisting.model";
 import HttpStatus from "http-status-codes";
+import Vendor from "../../models/vendor/vendor.model";
 import VehicleReviews from "../../models/reviews/vehiclereview.model";
+import Subscription from "../../models/subscriptions/subscriptions.model";
+import Shoplisitng2 from "../../models/categories/shop-listing-cat.model";
+import Shoplisitng1 from "../../models/categories/shop-listing-sub-cat.model";
+// import Vendor from "../../models/vendor/vendor.model";
 
 import multer from "multer";
  
@@ -20,6 +25,7 @@ export default {
       address: req.body.address,
       category: req.body.category,
       active:"true",
+      state:req.body.state,
       pan_adhaar: req.files["pan_adhaar"][0].path,
       driving_license: req.files["driving_license"][0].path,
       insurance: req.files["insurance"][0].path,
@@ -45,7 +51,11 @@ export default {
     
     console.log(req.files);
     Vechiclelisting.create(schema)
-      .then((Users) => res.json(Users))
+      .then((Users) => { Vendor.findByIdAndUpdate(
+        {_id: req.body.vendorid},
+        {
+          km_charges:req.body.vehicle_price,
+        }).then((res)=>{console.log(res)}); res.json(Users)})
       .catch((err) => res.status(500).json(err));
   },
 
@@ -57,6 +67,22 @@ export default {
     });
   },
 
+  async getlocationdetails(req,res){
+    let { id } = req.params;
+
+    Vechiclelisting.find({vendorid : id}, function (err, docs) {
+      if (err){
+          console.log(err);
+      }
+      else{
+          console.log("Result : ", docs);
+          // var result=docs;
+          // console.log("Result : ", result);
+          res.send(docs[0]._id);
+      }
+  });
+
+  },
   async editactive(req, res) {
     let { id } = req.params;
     let vid = id.split("&&")[0];
@@ -77,7 +103,46 @@ export default {
       });
   },
 
-  
+  async getvehicledetails(req,res){
+    let { id } = req.params;
+
+    Vechiclelisting.find({_id: id}).then( async (resp)=>{
+      console.log(resp);
+
+      // await Shoplisitng2.findById(resp[0].category).then(result=>{
+      //   console.log(result);
+      //   resp[0].category = result.cat_name;
+      // });
+
+      // await Shoplisitng1.findById(resp[0].sub_cat).then(result1=>{
+      //   console.log(result1);
+      //   if(result1==null){
+      //   }
+      //   else{
+      //     console.log(result1);
+      //     resp[0].sub_cat = result1.sub_cat_name;
+          
+      //   }
+      //   console.log(result1);
+      //   // resp[0].subcategory = result1.cat_name;
+      // });
+
+      // await Vendor.findById(resp[0].vendorid).then(result2=>{
+      //   if(result2==null){
+
+      //   }
+      //   else{
+      //     console.log(result2);
+      //     resp[0].vendorid = result2.name;
+          
+      //   }
+      //   console.log(result2);
+      //   // resp[0].subcategory = result1.cat_name;
+      // });
+
+      res.send(resp)})
+  },
+
   findAll(req, res, next) {
     var s = req.protocol + "://" + req.get("host");
 
@@ -148,7 +213,7 @@ export default {
     //   { $unwind: "$vendor" },
     //   // { $unwind: "$category" },
     //   { $unwind: "$review" },
-    ]).then((vechicle) => res.json(vechicle));
+    ]).then((vechicle) => res.json(vechicle.reverse()));
   },
   findAll1(req, res, next) {
     var s = req.protocol + "://" + req.get("host");
@@ -726,6 +791,7 @@ export default {
        {
          $addFields: {
            convertedId2: { $toObjectId: "$vendorid" },
+           convertedvehicletype: { $toObjectId: "$vechicle_type" },
            convertedId5: { $toString: "$_id" },
            convertedId7: {$toString: "$vechicle_price"}
          },
@@ -741,10 +807,19 @@ export default {
            as: "vendor_details",
          },
        },
+       {
+         $lookup:{
+           from: "vehiclelisting-sub-cats",
+           localField:"convertedvehicletype",
+           foreignField: "_id",
+           as: "subcat"
+         }
+       },
       {
         $project:{
          vendor_id:"$vendor_details._id",
          serviceprovidername:"$vendor_details.name",
+         vehicle_subcategory:"$subcat.sub_cat_name",
          price:"$convertedId7",
          call:"$vendor_details.phonenumber",
          km_serving:"$vendor_details.vehicle_km_serving",
@@ -754,7 +829,80 @@ export default {
         }
       }
      
-     ]).then((vechicle) => res.json(vechicle));
+     ]).then( async (vechicle) =>{
+      
+      for(let i=0;i<vechicle.length;i++){
+        if(vechicle[i].vendor_id.length==0){
+          console.log("this is null",vechicle[i].vendor_id);
+        }
+        else{
+      await Subscription.aggregate([
+        {
+          $addFields: {
+            convertedId1: { $toString: vechicle[i].vendor_id[0] },
+            convertedId2: { $toObjectId: "$plan_id" },
+          },
+        },
+        {
+          $match: { $expr: { $and: [{ $eq: ["$vendor_id", "$convertedId1"] }] } },
+        },
+        {
+          $lookup: {
+            from: "subscriptions",
+            localField: "convertedId2",
+            foreignField: "_id",
+            as: "get_subplan",
+          },
+        },
+        {
+          $addFields: {
+            days: "$get_subplan.days",
+            days: "$get_subplan.days",
+          },
+        },
+  
+        { $unwind: "$days" },
+        {
+          $group: {
+            _id: "$vendor_id",
+            days: { $sum: "$days" },
+            createdat: { $first: "$createdat" },
+            //   msid:{ $sum: 1},
+          },
+        },
+        {
+          $project: {
+            days: "$days",
+            daysremaining: {
+              $divide: [
+                { $subtract: [new Date(), "$createdat"] },
+                1000 * 60 * 60 * 24,
+              ],
+            },
+          },
+        },
+        {
+          $addFields:{
+            conver: { $subtract: [ "$days", "$daysremaining"] }
+          }
+        },
+        {
+          $project: {
+            totaldayssubscribed: "$days",
+            daysremaining: { $round: ["$conver", 0] },
+          },
+        },
+      ]).then((resp) => {if(resp.length==0){ vechicle[i].daysremaining = -10}else{vechicle[i].daysremaining = resp[0].daysremaining}
+    }).catch(err=>{
+      console.log(err);
+    });
+      console.log("this is response",i ,vechicle[i]);
+    }  
+    }
+    
+      res.json(vechicle);
+      
+     });
    },
 
    async updatedriverlocation(req,res){

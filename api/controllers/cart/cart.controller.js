@@ -108,6 +108,7 @@ export default {
           name: "$get_products.productname",
           images: "$get_products.prodphoto.path", 
           product_id: "$get_products._id",
+          stock: "$get_products.stock",
           regular_price: "$get_products.prodctcost",
           discount_price: "$get_products.discountedprodprice",
           shopname:"$shopname",

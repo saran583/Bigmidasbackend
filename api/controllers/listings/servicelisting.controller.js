@@ -2,7 +2,7 @@ import Joi from "joi";
 import Servicelisting from "../../models/listings/servicelisting.model";
 import HttpStatus from "http-status-codes";
 import ServiceReviews from "../../models/reviews/reviewservice.model";
-
+import Subscription from "../../models/subscriptions/subscriptions.model";
 import multer from "multer";
 
 export default {
@@ -19,6 +19,7 @@ export default {
       area: req.body.area,
       city: req.body.city,
       images:"",
+      state:req.body.state,
       active:"true",
       pan_adhaar: req.files["pan_adhaar"][0].path,
 
@@ -181,7 +182,7 @@ export default {
     //   {
     //     $unwind: "$reviews",
     //   },
-    ]).then((vechicle) => res.json(vechicle));
+    ]).then((vechicle) => res.json(vechicle.reverse()));
   },
   Updatecat(req, res) {
     let { id } = req.params;
@@ -325,6 +326,16 @@ export default {
     ])
     .then((vechicle) => {console.log(vechicle); res.json(vechicle)});
   },
+
+  async getservicedetails(req,res){
+    let { id } = req.params;
+
+    Servicelisting.find({_id: id}).then( async (resp)=>{
+      console.log(resp);
+      res.send(resp)});
+
+  },
+
 
   async getactive(req,res){
     let { id } = req.params;
@@ -741,6 +752,49 @@ export default {
   },
 
 
+  async getlocationdetails(req,res){
+    let { id } = req.params;
+
+    Servicelisting.find({vendorid : id}, function (err, docs) {
+      if (err){
+          console.log(err);
+      }
+      else{
+          console.log("Result : ", docs);
+          // var result=docs;
+          // console.log("Result : ", result);
+          res.send(docs[0]._id);
+      }
+  });
+
+  },
+
+  async updatelocationdetails(req, res ){
+    let { id } = req.params;
+    console.log(id);
+    console.log(req.body.city);
+    console.log(req.body.state);
+
+    Servicelisting.findByIdAndUpdate(
+      { _id: id },
+      {
+        state:req.body.state,
+        city:req.body.city,
+        address:req.body.address,
+        location_map:req.body.location_map,
+        area:req.body.area,
+      },
+    )
+      .then((rest) => {
+        console.log(rest)
+        res.send({ msg: "Updated Successfully" });
+      })
+      .catch((err) => {
+        res.send({ msg: "Update Failed" });
+      });
+
+  },
+
 
   findvendordetails(req, res, next) {
    let {id} = req.params;
@@ -814,6 +868,76 @@ export default {
         }
       }
      
-     ]).then((vechicle) =>{ console.log(vechicle); res.json(vechicle)});
+     ]).then(async (vechicle) =>{ console.log(vechicle);      
+      for(let i=0;i<vechicle.length;i++){
+        if(vechicle[i].vendor_id.length==0){
+          console.log("this is null",vechicle[i].vendor_id);
+        }
+        else{
+      await Subscription.aggregate([
+        {
+          $addFields: {
+            convertedId1: { $toString: vechicle[i].vendor_id[0] },
+            convertedId2: { $toObjectId: "$plan_id" },
+          },
+        },
+        {
+          $match: { $expr: { $and: [{ $eq: ["$vendor_id", "$convertedId1"] }] } },
+        },
+        {
+          $lookup: {
+            from: "subscriptions",
+            localField: "convertedId2",
+            foreignField: "_id",
+            as: "get_subplan",
+          },
+        },
+        {
+          $addFields: {
+            days: "$get_subplan.days",
+            days: "$get_subplan.days",
+          },
+        },
+  
+        { $unwind: "$days" },
+        {
+          $group: {
+            _id: "$vendor_id",
+            days: { $sum: "$days" },
+            createdat: { $first: "$createdat" },
+            //   msid:{ $sum: 1},
+          },
+        },
+        {
+          $project: {
+            days: "$days",
+            daysremaining: {
+              $divide: [
+                { $subtract: [new Date(), "$createdat"] },
+                1000 * 60 * 60 * 24,
+              ],
+            },
+          },
+        },
+        {
+          $addFields:{
+            conver: { $subtract: [ "$days", "$daysremaining"] }
+          }
+        },
+        {
+          $project: {
+            totaldayssubscribed: "$days",
+            daysremaining: { $round: ["$conver", 0] },
+          },
+        },
+      ]).then((resp) => {if(resp.length==0){ vechicle[i].daysremaining = -10}else{vechicle[i].daysremaining = resp[0].daysremaining}
+    }).catch(err=>{
+      console.log(err);
+    });
+      console.log("this is response",i ,vechicle[i]);
+    }  
+    }
+      
+      res.json(vechicle)});
    },
 };

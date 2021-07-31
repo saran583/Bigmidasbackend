@@ -6,6 +6,7 @@ import SaveMessage from "../../models/messages/bulkmessage.model";
 import Vendordetails from"../../models/vendor/vendor.model";
 import Customerdetails from "../../models/customer/customer.model";
 import Vendornotifications from "../../models/messages/Vendormessages.model";
+import Customernotifications from "../../models/messages/Customermessages.model";
 import { request } from "express";
 // const https = require('https');
 const axios = require("axios");
@@ -76,11 +77,20 @@ export default {
     });
   },
 
+  async addcustmessages(req,res){
+    let {id} = req.params;
+    Customernotifications.find({custid:id}).then((result)=>{
+      console.log(result);
+      res.send({result});
+    });
+  },
+
+
   async sendnotification(req, res){
     let requid = req.body.cust;
-    let msg = req.body.msg;
+    let msg = req.body.message;
     let tok = req.body.token;
-
+    console.log(req.body);
     console.log(requid);
     console.log(msg);
     bulkMessage.find({ uid: requid}, function (err, docs) {
@@ -128,7 +138,7 @@ export default {
                     console.log(response);
                   })
                   .catch((err) => {
-                    console.log("Adding sent notifications to db failed ");
+                    console.log("Adding sent notifications to db failed ",err);
                   });
                 });
               }
@@ -150,24 +160,22 @@ export default {
 
   async sendnotificationtoall(req, res){
     let { msg } = req.params;
-
-    bulkMessage.find({ }, function (err, docs) {
+    bulkMessage.find({ }, function (err, docs)  {
       if (err){
           console.log(err);
       }
       else{
-        console.log(docs);
+        console.log("this is docs ",docs);
         try{  
         console.log("Second function call : ", docs[0].firebase_token);
         for (let i=0;i<docs.length;i++){
-          console.log(docs[i].uid);
+          console.log("this is uid",docs[i].uid);
           axios({
-                method: 'post',
+                method: 'POST',
                 headers:{
                   "Content-Type":"application/json",
                   // "Authorization":"key=AAAAxIkn9nY:APA91bHo0OdhbBNNCy8_GN7DsUwGpGFNiu2B0hzIVWKa5G2UJxiJQRiG7FX0VR8JBDYT0ydbmBYWhWx9JuGjPURvcQlzItXhVf-coJ5F3mwLXKq8sWOFRTnvI1Xm3xE_GxD97tFiEXX4",
                   "Authorization":"key=AAAAZAr6u2A:APA91bFv992Wos4HwN0-dyQlMPSHDOJ7BnAeFRfsFLS8FjDs8gwy7Om-cx6ZG9dgG1sI09cqo4ATQlG5lhXXdInxkZLB6zp1dtJeSCv8aNT1BZoBn6CHQQ--Qsh8i4zLXOIAlEwlfyMU",
-
                 },
                 url: 'https://fcm.googleapis.com/fcm/send',
                 data: {
@@ -178,7 +186,7 @@ export default {
                         },
                       }
               }).then(response =>{
-                console.log(response.data);
+                console.log("this is response data",response.data);
                 if(i<1){
                 const schema2 = new SaveMessage({
                   cust_id: "",
@@ -188,7 +196,7 @@ export default {
                 });
                 SaveMessage.create(schema2)
                 .then((response)=>{
-                  console.log(response);
+                  console.log("this is response",response);
                 })
                 .catch((err) => {
                   console.log("Adding sent notifications to db failed ");
@@ -198,7 +206,7 @@ export default {
               })
               .catch((err) => {
                 // res.send({ msg: "Invalid vendorid" });
-                console.log("Invalid VendorId");
+                console.log("Invalid VendorId",err);
               });
             }
             } catch(er){

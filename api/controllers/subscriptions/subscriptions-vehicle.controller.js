@@ -124,7 +124,6 @@ export default {
           as: "get_vendor",
         },
       },
-
       {
         $addFields: {
           days: "$get_subplan.days",
@@ -152,7 +151,7 @@ export default {
           daysremaining: {
             $divide: [
               { $subtract: [new Date(), "$createdat"] },
-              1000 * 60 * 60 * 24,
+              100 * 60 * 60 * 24,
             ],
           },
         },
@@ -200,7 +199,7 @@ export default {
           status: "$status",
         },
       },
-      { $unwind: "$vehicle_category" },
+      // { $unwind: "$vehicle_category" },
     ])
       .then((vechicle) =>{ console.log(vechicle);  res.json({ shops: vechicle })})
       .catch((err) => {

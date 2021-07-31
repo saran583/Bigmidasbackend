@@ -3,6 +3,7 @@ import bulkMessage from "../../models/messages/notification.model";
 const axios = require("axios");
 import customernotification from "../../models/messages/customernotification";
 import Vendornotifications from "../../models/messages/Vendormessages.model";
+import Customernotifications from "../../models/messages/Customermessages.model";
 
 
 function sendnotificationonbooking(vendid) {
@@ -53,6 +54,17 @@ function addmessages(vendid,msg){
   .catch((err) =>{ console.log(err)});
 }
 
+function addcustmessages(vendid,msg){
+
+  const notification = new Customernotifications({
+    custid: vendid,
+    message: msg,
+  });
+  Customernotifications.create(notification)
+  .then((res) => { console.log(res)})
+  .catch((err) =>{ console.log(err)});
+}
+
 function sendnotificationtocustomer(requid,msg){
   console.log("requid",requid);
   console.log(msg);
@@ -80,6 +92,7 @@ function sendnotificationtocustomer(requid,msg){
                       },
                     }
             }).then(response =>{
+              addcustmessages(requid,msg);
               console.log(result);
               // res.send(response.data)
             })
@@ -315,7 +328,7 @@ export default {
     let { vendorid } = req.params;
     let splitted = vendorid.split("&&");
     let vend = splitted[0];
-    // let vend = "60b8a8c1fcdeed16a1fc6cb8"
+    // let vend = "61014522eeaacb23eab81b8f"
     // let stat = splitted[1];
     let stat = splitted[1];
 

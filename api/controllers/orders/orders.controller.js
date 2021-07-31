@@ -3,6 +3,8 @@ import bulkMessage from "../../models/messages/notification.model";
 const axios = require("axios");
 import customernotification from "../../models/messages/customernotification";
 import Vendornotifications from "../../models/messages/Vendormessages.model";
+import Customernotifications from "../../models/messages/Customermessages.model";
+import Product from "../../models/products/products.model";
 
 
 function sendnotificationonbooking(vendid,msg) {
@@ -54,6 +56,17 @@ function addmessages(vendid,msg){
   .catch((err) =>{ console.log(err)});
 }
 
+function addcustmessages(vendid,msg){
+
+  const notification = new Customernotifications({
+    custid: vendid,
+    message: msg,
+  });
+  Customernotifications.create(notification)
+  .then((res) => { console.log(res)})
+  .catch((err) =>{ console.log(err)});
+}
+
 
 function sendnotificationtocustomer(requid,msg){
   console.log("requid",requid);
@@ -82,6 +95,7 @@ function sendnotificationtocustomer(requid,msg){
                       },
                     }
             }).then((response) =>{
+              addcustmessages(requid,msg);
               console.log(response);
               // res.send(response.data)
             })
@@ -105,13 +119,18 @@ export default {
   async addorder(req, res) {
     const order = new Orders({
       productid: req.body.productid,
+      productids: req.body.productid,
+      productname: req.body.productname,
+      productimage: req.body.productimage,
       customerid: req.body.customerid,
       quantity: req.body.quantity,
       address: req.body.address,
       vendorid: req.body.vendorid,
       status: req.body.status,
+      totalamount: req.body.totalamount,
       amount:req.body.amount,
       order_note:req.body.order_note,
+      delivery_charges: req.body.delivery_charges,
       orederid:1000
     });
     Orders.find({})
@@ -122,60 +141,147 @@ export default {
       var value = parseInt(result[0].orederid)+1
       order.orederid = value.toString();
       Orders.create(order)
-            .then((Users) => res.json(Users))
+            .then((Users) => {res.json({result: Users});})
             .catch((err) => res.status(500).json(err));
     }) 
   },
 
 
+
   async addmultipleorder(req, res) {
-    var resp = [];
-    var value = 0;
-    var counter=1;
+    var productids="",quantities="",amounts="",prodname="",prodimage="";
+    productids=req.body.productid[0];
+    quantities=req.body.quantity[0];
+    prodimage=req.body.productimage[0];
+    prodname=req.body.productname[0];
+    amounts=req.body.amount[0];
     console.log(req.body);
-    for(var i=0;i<req.body.productid.length;i++){
+    for(var i=1;i<req.body.productid.length;i++){
+      productids = productids + "&&" + req.body.productid[i],
+      prodname = prodname + "&&" + req.body.productname[i],
+      prodimage = prodimage + "&&" + req.body.productimage[i],
+      quantities = quantities + "&&" + req.body.quantity[i],
+      amounts = amounts + "&&" + req.body.amount[i]
+    }
+    console.log("array data",productids, quantities, amounts)
     const order = new Orders({
-      productid: req.body.productid[i],
+      productid: req.body.productid[0],
+      productids: productids,
+      productimage: prodimage,
+      productname: prodname,
       customerid: req.body.customerid,
-      quantity: req.body.quantity[i],
+      quantity: quantities,
       address: req.body.address,
       vendorid: req.body.vendorid,
       status: req.body.status,
-      amount:req.body.amount[i],
-      delivery_charges: req.body.delivery_charges,
+      amount: amounts,
+      totalamount: req.body.totalamount,
       order_note:req.body.order_note,
+      delivery_charges: req.body.delivery_charges,
       orederid:1000
     });
     Orders.find({})
     .sort({ _id: -1})
     .limit(1)
     .then((result)=>{
-      if(value<1){
-        console.log(value);
-        value = parseInt(result[0].orederid)+1
-      }
-      console.log("this is i",i);
-      console.log("this is value",value);
+      sendnotificationonbooking(req.body.vendorid,"You have a new order for your store");
+      var value = parseInt(result[0].orederid)+1
       order.orederid = value.toString();
-      order.orederid = order.orederid+"-"+counter;
-      counter=counter+1;
       Orders.create(order)
-      .then((users)=>{
-        sendnotificationonbooking(req.body.vendorid,"You have a new order for your store");
-        console.log(users);
-      })
-      .catch((err)=>{console.log(err); resp.push(err)});
-    });
-  }
-    res.json({result: counter}); 
+            .then((Users) => {res.json({result: Users});})
+            .catch((err) => res.status(500).json(err));
+    }) 
   },
+
+
+  // async addmultipleorder(req, res) {
+  //   var resp = [];
+  //   var value = 0;
+  //   var counter=1;
+  //   var productids="",quantities="",amounts="";
+  //   console.log(req.body);
+  //   for(var i=1;i<req.body.productid.length;i++){
+  //   const order = new Orders({
+  //     productid: req.body.productid[i],
+  //     customerid: req.body.customerid,
+  //     quantity: req.body.quantity[i],
+  //     address: req.body.address,
+  //     vendorid: req.body.vendorid,
+  //     status: req.body.status,
+  //     amount:req.body.amount[i],
+  //     delivery_charges: req.body.delivery_charges,
+  //     order_note:req.body.order_note,
+  //     orederid:1000
+  //   });
+  //   Orders.find({})
+  //   .sort({ _id: -1})
+  //   .limit(1)
+  //   .then((result)=>{
+  //     if(value<1){
+  //       console.log(value);
+  //       value = parseInt(result[0].orederid)+1
+  //     }
+  //     console.log("this is i",i);
+  //     console.log("this is value",value);
+  //     order.orederid = value.toString();
+  //     order.orederid = order.orederid+"-"+counter;
+  //     counter=counter+1;
+  //     Orders.create(order)
+  //     .then((users)=>{
+  //       sendnotificationonbooking(req.body.vendorid,"You have a new order for your store");
+  //       console.log(users);
+  //     })
+  //     .catch((err)=>{console.log(err); resp.push(err)});
+  //   });
+  // }
+  //   res.json({result: counter}); 
+  // },
+
+
+  async updateqty(req,res){
+    // var prods="60e84c0cd2c42c514b851bec&&604b7f344458c448579ce161"
+    // var quantity = "5&&3";
+    // var count =0;
+    
+    let qty = req.body.quantity.split("&&");
+    let productids = req.body.productids.split("&&");
+    // let qty = quantity.split("&&");
+    // let productids = prods.split("&&");
+    console.log(productids);
+    console.log("this is length",productids.length);
+    for(let i=0;i<productids.length;i++){
+      // console.log("this is count",count);
+      // count=count+1;
+      console.log("this is prods",productids[i]);
+      Product.findById(productids[i]).then((res)=>{
+        console.log(res); 
+        console.log(res.stock);
+        console.log("this is quantity",qty[i])
+        let updateqty = parseInt(res.stock) - parseInt(qty[i])
+        console.log("this is updated qty",updateqty);
+
+        Product.findByIdAndUpdate(
+          { _id: productids[i] },
+          {
+            stock : updateqty
+          },
+          {new:true}).then((result)=>{
+            console.log(result)
+          })
+      });
+    }
+    res.send("done");
+  },
+
+
+
 
 
   async ordersByVendor(req, res) {
     let { vendorid } = req.params;
     let splitted = vendorid.split("&&");
     let vend = splitted[0];
-    // let vend = "60cddaca37fd341aeba02149";
+    // let vend = "60cc4c7b149c5c74c34594fe";
     let stat = splitted[1];
     console.log(vend , stat);
     if (stat == undefined || stat == "0") {
@@ -205,7 +311,12 @@ export default {
         {
           $project: {
             productid: "$productid",
+            productids: "$productids",
+            productname: "$productname",
+            productimage:"$productimage",
+            discountedprodprice:"$amount",
             quantity: "$quantity",
+            totalamount: "$totalamount",
             status: "$status",
             orederid: "$orederid",
             address: "$address",
@@ -218,20 +329,20 @@ export default {
 
         {
           $addFields: {
-            convertedId1: { $toObjectId: "$productid" },
+            // convertedId1: { $toObjectId: "$productid" },
             cus_id: { $toObjectId: "$customerid" },
             note: {$toString: "$ordernote"},
             addr: {$toString: "$address"},
           },
         },
-        {
-          $lookup: {
-            from: "products",
-            localField: "convertedId1",
-            foreignField: "_id",
-            as: "get_products",
-          },
-        },
+        // {
+        //   $lookup: {
+        //     from: "products",
+        //     localField: "convertedId1",
+        //     foreignField: "_id",
+        //     as: "get_products",
+        //   },
+        // },
         // {
         //   $project: {
         //     deliverycharges: "$get_vendor.delivery_charges",
@@ -248,12 +359,14 @@ export default {
         },
         {
           $project: {
-            productname: "$get_products.productname",
-            prodctcost: "$get_products.prodctcost",
+            productname: "$productname",
+            productids:"$productids",
+            // prodctcost:  "$get_products.prodctcost",
+            productimage: "$productimage",
             customername: "$get_customer_details.name",
             customerid: "$get_customer_details._id",
             customerphone: "$get_customer_details.phoneno",
-            discountedprodprice: "$get_products.discountedprodprice",
+            discountedprodprice: "$discountedprodprice",
             quantity: "$quantity",
             deliverycharges:"$deliverycharges",
             // freedeliveryabove:"$get_vendor.free_delivery",
@@ -262,7 +375,7 @@ export default {
             status: "$status",
             orederid: "$orederid",
             ordertime: "$timeoforder",
-            totalprice: null,
+            totalprice: "$totalamount",
             customfield: {
               $switch: {
                 branches: [
@@ -276,19 +389,20 @@ export default {
         },
         { $unwind: "$customername" },
         { $unwind: "$customerphone" },
-        { $unwind: "$productname" },
+        // { $unwind: "$productids" },
         { $unwind: "$customerid" },
+        // { $unwind: "$productimage"},
         // // { $unwind: "$ordernote" },
-        { $unwind: "$prodctcost" },
+        // { $unwind: "$prodctcost" },
         { $unwind: "$discountedprodprice" },
       ])
         .then((result) => {
           console.log(result);
           res.send({ products: result });
         })
-        .catch((err) => {
-          res.send({ msg: "Invalid vendorid" });
-        });
+        // .catch((err) => {
+        //   res.send({ msg: "Invalid vendorid",err });
+        // });
 
     } else {
       Orders.aggregate([
@@ -313,6 +427,12 @@ export default {
         {
           $project: {
             productid: "$productid",
+            productids: "$productids",
+            productname: "$productname",
+            productimage:"$productimage",
+            discountedprodprice:"$amount",
+            quantity: "$quantity",
+            totalamount: "$totalamount",
             quantity: "$quantity",
             deliverycharges:"$delivery_charges",
             status: "$status",
@@ -325,18 +445,18 @@ export default {
 
         {
           $addFields: {
-            convertedId1: { $toObjectId: "$productid" },
+            // convertedId1: { $toObjectId: "$productid" },
             cus_id: { $toObjectId: "$customerid" },
           },
         },
-        {
-          $lookup: {
-            from: "products",
-            localField: "convertedId1",
-            foreignField: "_id",
-            as: "get_products",
-          },
-        },
+        // {
+        //   $lookup: {
+        //     from: "products",
+        //     localField: "convertedId1",
+        //     foreignField: "_id",
+        //     as: "get_products",
+        //   },
+        // },
         {
           $lookup: {
             from: "customer-details",
@@ -347,12 +467,14 @@ export default {
         },
         {
           $project: {
-            productname: "$get_products.productname",
-            prodctcost: "$get_products.prodctcost",
+            productname: "$productname",
+            productids:"$productids",
+            // prodctcost:  "$get_products.prodctcost",
+            productimage: "$productimage",
             customername: "$get_customer_details.name",
             customerid: "$get_customer_details._id",
             customerphone: "$get_customer_details.phoneno",
-            discountedprodprice: "$get_products.discountedprodprice",
+            discountedprodprice: "$discountedprodprice",
             quantity: "$quantity",
             address: "$address",
             deliverycharges:"$deliverycharges",
@@ -371,10 +493,10 @@ export default {
           },
         },
         { $unwind: "$customername" },
-        { $unwind: "$productname" },
+        // { $unwind: "$productids" },
         { $unwind: "$customerid" },
         { $unwind: "$customerphone"},
-        { $unwind: "$prodctcost" },
+        // { $unwind: "$prodctcost" },
         { $unwind: "$discountedprodprice" },
       ])
         .then((result) => {
@@ -441,6 +563,10 @@ export default {
         {
           $project: {
             productid: "$productid",
+            productname:"$productname",
+            productimage:"$productimage",
+            discountedprodprice:"$amount",
+            totalprice:"$totalamount",
             quantity: "$quantity",
             status: "$status",
             orederid: "$orederid",
@@ -452,19 +578,19 @@ export default {
 
         {
           $addFields: {
-            convertedId1: { $toObjectId: "$productid" },
+            // convertedId1: { $toObjectId: "$productid" },
             cus_id: { $toObjectId: "$customerid" },
             vend_id: { $toObjectId: "$vendor" },
           },
         },
-        {
-          $lookup: {
-            from: "products",
-            localField: "convertedId1",
-            foreignField: "_id",
-            as: "get_products",
-          },
-        },
+        // {
+        //   $lookup: {
+        //     from: "products",
+        //     localField: "convertedId1",
+        //     foreignField: "_id",
+        //     as: "get_products",
+        //   },
+        // },
         {
           $lookup: {
             from: "vendor-details",
@@ -483,13 +609,14 @@ export default {
         },
         {
           $project: {
-            productname: "$get_products.productname",
-            prodctcost: "$get_products.prodctcost",
+            productname: "$productname",
+            // prodctcost: "$get_products.prodctcost",
             customername: "$get_customer_details.name",
-            discountedprodprice: "$get_products.discountedprodprice",
-            prodphotos:"$get_products.prodphoto",
+            discountedprodprice: "$discountedprodprice",
+            prodphotos:"$productimage",
             quantity: "$quantity",
             vendorphone: "$get_vendor.phonenumber",
+            totalprice:"$totalprice",
             // delivery_charges: "$get_customer_details.delivery_charges",
             // free_delivery_above: "$get_customer_details.free_delivery_above",
             //status: "$status",
@@ -511,7 +638,7 @@ export default {
         {$unwind: "$prodphotos"},
         // { $unwind: "$delivery_charges" },
         // { $unwind: "$free_delivery_above"},
-        { $unwind: "$prodctcost" },
+        // { $unwind: "$prodctcost" },
         { $unwind: "$discountedprodprice" },
       ])
         .then((result) => {
@@ -545,6 +672,10 @@ export default {
         {
           $project: {
             productid: "$productid",
+            productname:"$productname",
+            productimage:"$productimage",
+            discountedprodprice:"$amount",
+            totalprice:"$totalamount",
             quantity: "$quantity",
             status: "$status",
             orederid: "$orederid",
@@ -556,7 +687,7 @@ export default {
 
         {
           $addFields: {
-            convertedId1: { $toObjectId: "$productid" },
+            // convertedId1: { $toObjectId: "$productid" },
             cus_id: { $toObjectId: "$customerid" },
             vend_id: { $toObjectId: "$vendor" },
           },
@@ -569,14 +700,14 @@ export default {
             as: "get_vendor",
           },
         },
-        {
-          $lookup: {
-            from: "products",
-            localField: "convertedId1",
-            foreignField: "_id",
-            as: "get_products",
-          },
-        },
+        // {
+        //   $lookup: {
+        //     from: "products",
+        //     localField: "convertedId1",
+        //     foreignField: "_id",
+        //     as: "get_products",
+        //   },
+        // },
         {
           $lookup: {
             from: "customer-details",
@@ -587,10 +718,13 @@ export default {
         },
         {
           $project: {
-            productname: "$get_products.productname",
-            prodctcost: "$get_products.prodctcost",
+            
+            productname:"$productname",
+            productimage:"$productimage",
+            discountedprodprice:"$amount",
+            totalprice:"$totalamount",
             customername: "$get_customer_details.name",
-            discountedprodprice: "$get_products.discountedprodprice",
+            discountedprodprice: "$discountedprodprice",
             quantity: "$quantity",
             vendorphone: "$get_vendor.phonenumber",
             //status: "$status",
@@ -609,7 +743,7 @@ export default {
         },
         { $unwind: "$customername" },
         { $unwind: "$productname" },
-        { $unwind: "$prodctcost" },
+        // { $unwind: "$prodctcost" },
         { $unwind: "$discountedprodprice" },
       ])
         .then((result) => {

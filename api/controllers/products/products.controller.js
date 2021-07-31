@@ -1,4 +1,10 @@
 import Product from "../../models/products/products.model";
+import Shoplisitng from "../../models/categories/shop-listing-cat.model";
+import shopdetails from "../../models/listings/soplisting.model";
+import shoplistingController from "../listings/shoplisting.controller";
+import Shoplisitng1 from "../../models/categories/shop-listing-sub-cat.model";
+import Vendor from "../../models/vendor/vendor.model";
+
 
 export default {
   async createProduct(req, res) {
@@ -85,6 +91,52 @@ export default {
       });
   },
 
+  async getProductbyid(req,res){
+    let { id } = req.params;
+    Product.find({_id: id}).then( async (resp)=>{
+      console.log(resp);
+      // resp[0]["value"]="testing";
+      console.log(resp);
+
+      await Shoplisitng.findById(resp[0].category).then(result=>{
+        console.log(result);
+        resp[0].category = result.cat_name;
+      });
+
+      await shopdetails.find({vendorid:resp[0].vendorid}).then(results=>{
+        console.log("this is shop details",results);
+        resp[0].unit = results[0].shop_name;
+      })
+
+      await Shoplisitng1.findById(resp[0].subcategory).then(result1=>{
+        if(result1==null){
+
+        }
+        else{
+          console.log(result1);
+          resp[0].subcategory = result1.sub_cat_name;
+          
+        }
+        console.log(result1);
+        // resp[0].subcategory = result1.cat_name;
+      });
+
+      await Vendor.findById(resp[0].vendorid).then(result2=>{
+        if(result2==null){
+
+        }
+        else{
+          console.log("this is vednor details",result2);
+          resp[0].createdAt = result2.name;
+          resp[0].vendorid = result2._id;
+        }
+        console.log(result2);
+        // resp[0].subcategory = result1.cat_name;
+      });
+
+      res.send(resp)})
+  },
+
   async getProductsByCategory(req, res) {
     var s = req.protocol + "://" + req.get("host");
     let { category } = req.params;
@@ -126,6 +178,8 @@ export default {
           discountedprodprice: "$discountedprodprice",
           prodphoto: "$prodphoto.path",
           vendorid: "$get_vendors.name",
+          // vendorid: "$get_vendors._id",
+          // shopname:"$get_shop.shop_name"
         },
       },
     //  { $unwind: "$category" },
@@ -357,10 +411,12 @@ async getProductsByShop(req, res) {
       { $unwind: "$vendorid" },
     ])
       .then((result) => {
+        console.log(result);
         res.send({ products: result });
       })
       .catch((err) => {
-        res.send({ msg: "User Not Found" });
+        console.log(err);
+        res.send({ msg: "User Not Found",err });
       });
   },
 

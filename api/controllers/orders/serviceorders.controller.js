@@ -3,6 +3,8 @@ import bulkMessage from "../../models/messages/notification.model";
 const axios = require("axios");
 import customernotification from "../../models/messages/customernotification";
 import Vendornotifications from "../../models/messages/Vendormessages.model";
+// import Vendornotifications from "../../models/messages/Vendormessages.model";
+import Customernotifications from "../../models/messages/Customermessages.model";
 
 
 function sendnotificationonbooking(vendid) {
@@ -40,6 +42,19 @@ function sendnotificationonbooking(vendid) {
   }
 });
 
+// function addmessages(vendid,msg){
+
+//   const notification = new Vendornotifications({
+//     vendorid: vendid,
+//     message: msg,
+//   });
+//   Vendornotifications.create(notification)
+//   .then((res) => { console.log(res)})
+//   .catch((err) =>{ console.log(err)});
+// }
+  
+}
+
 function addmessages(vendid,msg){
 
   const notification = new Vendornotifications({
@@ -50,8 +65,18 @@ function addmessages(vendid,msg){
   .then((res) => { console.log(res)})
   .catch((err) =>{ console.log(err)});
 }
-  
+
+function addcustmessages(vendid,msg){
+
+  const notification = new Customernotifications({
+    custid: vendid,
+    message: msg,
+  });
+  Customernotifications.create(notification)
+  .then((res) => { console.log(res)})
+  .catch((err) =>{ console.log(err)});
 }
+
 
 function sendnotificationtocustomer(requid,msg){
   console.log("requid",requid);
@@ -80,6 +105,7 @@ function sendnotificationtocustomer(requid,msg){
                       },
                     }
             }).then(response =>{
+              addcustmessages(requid,msg)
               console.log(result);
               // res.send(response.data)
             })
@@ -213,7 +239,7 @@ export default {
     let vend = splitted[0];
     // let vend = "60b48f8ce0b64515be20efd3"
     let stat = splitted[1];
-    if(stat == "0"){
+    if(stat == "0" || stat == undefined ){
     ServiceOrders.aggregate([
       {
         $addFields: {
@@ -292,7 +318,7 @@ export default {
       { $unwind: "$customerphone" },
       // { $unwind: "$productname" },
       { $unwind: "$customerid" },
-      // // { $unwind: "$ordernote" },
+      // { $unwind: "$ordernote" },
       // { $unwind: "$prodctcost" },
       // { $unwind: "$discountedprodprice" },
     ]).then((result)=>{

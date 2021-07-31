@@ -1,6 +1,7 @@
 import Joi from "joi";
 import Shoplisitng from "../../models/banners/banner.model";
 import multer from "multer";
+import Shoplisitng1 from "../../models/categories/shop-listing-cat.model";
 
 const upload = multer({ dest: "/uploads/" });
 
@@ -45,6 +46,12 @@ export default {
       .catch((err) => {
         res.send({ msg: "User Not Found" });
       });
+  },
+
+  findAll1(req, res, next) {
+    Shoplisitng1.find()
+      .then((cli_categories) => res.json(cli_categories))
+      .catch((err) => res.status(500).json(err));
   },
 
   async Updatecat(req, res) {
@@ -113,6 +120,7 @@ export default {
       },
     ])
       .then((result) => {
+        console.log("entered banners")
         res.send(result);
       })
       .catch((err) => {

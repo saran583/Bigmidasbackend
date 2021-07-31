@@ -86,7 +86,7 @@ export default {
           daysremaining: { $round: ["$conver", 0] },
         },
       },
-    ]).then((vechicle) => {if(vechicle.length==0){vechicle=[{daysremaining:-10}];} console.log(vechicle.length); res.json(vechicle)});
+    ]).then((vechicle) => {if(vechicle.length==0){vechicle=[{daysremaining:-10}];} console.log(vechicle[0].daysremaining); res.json(vechicle)});
   },
 
   findallsubs(req, res) {

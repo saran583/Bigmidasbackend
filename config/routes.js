@@ -54,6 +54,7 @@ import youtubeController from "../api/controllers/youtube/youtube.controller";
 
 import passport from "passport";
 import policiesController from "../api/controllers/policies/policies.controller";
+import bannerController from "../api/controllers/banners/banner.controller";
 
 //const storage = require("../api/helpers/storage");
 
@@ -71,6 +72,7 @@ router.post(
 router.post("/customer/login", customerController.login);
 router.post("/customer/loginbyemail", customerController.loginbyemail);
 router.post("/changepassword", customerController.changepassword);
+router.post("/changepasswordbyemail", customerController.changepasswordemail);
 // router.post("/customer/loginwithm", customerController.loginWithmobile);
 router.put(
   "/customer/update/:id",
@@ -100,6 +102,7 @@ router.post("/sendnotificationtocustomer", notificatonController.sendnotificatio
 router.get("/sendnotificationtoall/:msg", notificatonController.sendnotificationtoall);
 router.get("/sendnotificationtoallcustomers/:msg", notificatonController.sendnotificationtoallcustomers);
 router.get("/addmsg/:id",notificatonController.addmessages);
+router.get("/getcustmsg/:id",notificatonController.addcustmessages);
 
 
 //=========================================// 
@@ -133,12 +136,12 @@ router.post(
   upload.single("avatar"),
   ShoplistingController.createshopcat
 );
-router.get("/shoplist/cat", ShoplistingController.findAll);
+// router.get("/shoplist/cat", ShoplistingController.findAll);
+router.get("/shoplist/cat", BannerController.findAll1);
 router.put(
   "/shoplist/cat/:id",
   upload.single("avatar"),
-  ShoplistingController.Updatecat
-);
+  ShoplistingController.Updatecat);
 router.put("/shoplist/cat1/:id", ShoplistingController.Updatecat1);
 router.delete("/shoplist/cat/:id", ShoplistingController.Delete);
 
@@ -165,6 +168,7 @@ router.put(
   upload.single("avatar"),
   VehiclelistingController.Updatecat
 );
+// router.get("/getvehicledetails/:id",VehiclelistingController)
 router.put("/vehiclelist/cat1/:id", VehiclelistingController.Updatecat1);
 router.delete("/vehiclelist/cat/:id", VehiclelistingController.Delete);
 
@@ -192,7 +196,6 @@ router.delete("/service/cat/:id", Servicecatcontroller.Delete);
 router.post("/vehiclelist-sub/cat", VehiclelistingSubController.createshopcat);
 router.get("/vehiclelist-sub/cat", VehiclelistingSubController.findAllSubCat);
 router.get("/vehiclelist-sub/cat1/:id", VehiclelistingSubController.findAllSubCat1);
-
 router.get("/vehiclelist-sub/cat/:id", VehiclelistingSubController.findAll);
 router.put("/vehiclelist-sub/cat/:id", VehiclelistingSubController.Updatecat);
 router.delete("/vehiclelist-sub/cat/:id", VehiclelistingSubController.Delete);
@@ -212,9 +215,12 @@ router.post(
 );
 router.get("/deletestoreimage/:id/:path", shopController.getshopimage);
 router.post("/addstoreimages", uploaddoc.fields([{name:"images"}]),  shopController.addshopimages);
-
+router.get("/storelocationdetails/:id", shopController.getlocationdetails);
+router.get("/getshopcat/:id", shopController.getshopcat);
+router.put("/updatestorelocationdetails/:id", shopController.updatelocationdetails);
 router.get("/shoplist", shopController.findAll);
 router.get("/shoplist/:id", shopController.findAll1);
+router.get("/getshopdetails/:id", shopController.getshopdetails);
 router.get("/editshopactive/:id",shopController.editactive);
 router.get("/getshopactive/:id",shopController.getactive);
 
@@ -250,6 +256,8 @@ router.post(
   ]),
   vehicleController.createshopcat
 );
+router.get("/getvehicledetails/:id", vehicleController.getvehicledetails);
+router.get("/getvehiclelocation/:id", vehicleController.getlocationdetails);
 router.post("/addvehicleimages", uploaddoc.fields([{name:"images"}]),  vehicleController.addvehicleimages);
 router.get("/getvehicleactive/:id", vehicleController.getactive);
 router.get("/editvehicleactive/:id", vehicleController.editactive);
@@ -281,9 +289,12 @@ router.post(
   serviceController.createshopcat
 );
 router.get("/deleteserviceimage/:id/:path", serviceController.getserviceimage);
+router.get("/getservicedetails/:id", serviceController.getservicedetails);
 router.post("/addserviceimages", uploaddoc.fields([{name:"images"}]),  serviceController.addserviceimages);
+router.get("/getservicelocation/:id", serviceController.getlocationdetails);
 router.get("/servicelist", serviceController.findAll);
 router.get("/getserviceactive/:id", serviceController.getactive);
+router.put("/updatelocationdetails/:id", serviceController.updatelocationdetails);
 router.get("/editserviceactive/:id", serviceController.editactive);
 router.get("/servicevendordetails/:id", serviceController.findvendordetails);
 router.get("/servicevendorbycat/:id", serviceController.findvendordbycat);
@@ -305,6 +316,7 @@ router.post(
   productsController.createProduct
 );
 router.get("/allproducts", productsController.getallProducts);
+router.get("/productbyid/:id",productsController.getProductbyid);
 router.get(
   "/getprodbycategory/:category",
   productsController.getProductsByCategory
@@ -334,6 +346,7 @@ router.get("/ordersbyvendor/:vendorid", orderController.ordersByVendor);
 router.get("/ordersbyustomer/:id", orderController.ordersByCustomer);
 router.get("/allshoporders", orderController.allOrders);
 router.post("/updatestoreorderstatus",orderController.updatestatus);
+router.post("/updatequantity",orderController.updateqty);
 //=========================================//
 //vehicle orders
 router.post("/vehicleorders", vehicleorderController.createorder);

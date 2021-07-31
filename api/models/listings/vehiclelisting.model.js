@@ -45,6 +45,9 @@ const InvoiceSchema = new Schema({
     type: String, 
     required: true,
   },
+  state: {
+    type:String
+  },
   insurance:{
     type:String,
     required:true,
